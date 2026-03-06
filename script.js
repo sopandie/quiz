@@ -1,9 +1,18 @@
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 let used5050 = false;
 let usedFriend = false;
 let usedAudience = false;
 let moneyInterval;
 let filteredQuestions = [];
 let current = 0;
+let currentOptions = [];
 
 const money = [
   "Rp 100.000",
@@ -30,7 +39,9 @@ function startGame() {
     return;
   }
 
-  filteredQuestions = questions.filter((q) => q.level === level);
+filteredQuestions = shuffle(
+  questions.filter((q) => q.level === level)
+);
 
   document.querySelector(".start-screen").style.display = "none";
   document.querySelector(".container").style.display = "flex";
@@ -64,10 +75,19 @@ function loadQuestion() {
   const optDiv = document.getElementById("options");
   optDiv.innerHTML = "";
 
-  q.options.forEach((opt, i) => {
+  // gabungkan opsi dengan status benar
+  currentOptions = q.options.map((opt, i) => ({
+    text: opt,
+    correct: i === q.correct
+  }));
+
+  // acak opsi
+  currentOptions = shuffle(currentOptions);
+
+  currentOptions.forEach((opt, i) => {
     const div = document.createElement("div");
     div.className = "option";
-    div.innerText = opt;
+    div.innerText = opt.text;
     div.onclick = () => checkAnswer(i, div);
     optDiv.appendChild(div);
   });
@@ -75,14 +95,16 @@ function loadQuestion() {
   renderLadder();
 }
 
+
+
 function checkAnswer(i, el) {
-  const q = filteredQuestions[current];
 
   document.querySelectorAll(".option").forEach((opt) => {
     opt.style.pointerEvents = "none";
   });
 
-  if (i === q.correct) {
+  if (currentOptions[i].correct) {
+
     document.getElementById("correctSound").play();
     el.classList.add("correct");
 
@@ -96,16 +118,20 @@ function checkAnswer(i, el) {
     }, 1000);
 
   } else {
+
     document.getElementById("wrongSound").play();
     el.classList.add("wrong");
 
-    document.querySelectorAll(".option")[q.correct].classList.add("correct");
+    // tampilkan jawaban benar
+    const correctIndex = currentOptions.findIndex(o => o.correct);
+    document.querySelectorAll(".option")[correctIndex].classList.add("correct");
 
     setTimeout(() => {
       location.reload();
     }, 1500);
   }
 }
+
 function renderLadder() {
   const ladder = document.getElementById("ladder");
   ladder.innerHTML = "";
@@ -123,23 +149,20 @@ function renderLadder() {
 }
 
 document.getElementById("fifty").onclick = function () {
+
   if (used5050) return;
 
   used5050 = true;
   this.classList.add("used");
 
-  const q = filteredQuestions[current];
-
   let wrongIndexes = [];
 
-  q.options.forEach((opt, i) => {
-    if (i !== q.correct) wrongIndexes.push(i);
+  currentOptions.forEach((opt, i) => {
+    if (!opt.correct) wrongIndexes.push(i);
   });
 
-  // acak salah
-  wrongIndexes.sort(() => 0.5 - Math.random());
+  shuffle(wrongIndexes);
 
-  // ambil 2 untuk disembunyikan
   const hide = wrongIndexes.slice(0, 2);
 
   document.querySelectorAll(".option").forEach((btn, i) => {
@@ -147,6 +170,7 @@ document.getElementById("fifty").onclick = function () {
       btn.style.visibility = "hidden";
     }
   });
+
 };
 
 document.getElementById("friend").onclick = function () {
